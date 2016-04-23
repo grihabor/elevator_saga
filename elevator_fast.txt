@@ -1,0 +1,77 @@
+{
+    
+    init: function(elevators, floors) {
+
+        pressedUp = new Set();
+        pressedDown = new Set();
+        
+        
+        function elevator_passing_floor(elevator) {
+            return function(floorNum, direction) {
+                if(elevator.getPressedFloors().indexOf(floorNum) != -1){
+                    elevator.goToFloor(floorNum, true);
+                } else if(elevator.loadFactor() < .8){
+                    if(pressedDown.has(floorNum) && direction == "down"){
+                        pressedDown.delete(floorNum);
+                        elevator.goToFloor(floorNum, true);                
+                    } else if(pressedUp.has(floorNum) && direction == "up"){
+                        pressedUp.delete(floorNum);
+                        elevator.goToFloor(floorNum, true);         
+                    }
+                }
+            };
+        }
+     
+        function elevator_idle(elevator){
+            return function() {
+                elevator.goToFloor(0);
+                elevator.goToFloor(floors.length-1);
+            };
+        }
+        
+        for(var i = 0; i < elevators.length; i++){
+            var elevator = elevators[i];
+            
+            elevator.on("idle", elevator_idle(elevator));
+            elevator.on("passing_floor", elevator_passing_floor(elevator));
+        }
+        
+
+        function down_pressed(num) {
+            return function() { pressedDown.add(num); };
+        }
+        function up_pressed(num) {
+            return function() { pressedUp.add(num); };
+        }   
+        
+        
+        for(var num = 1; num < floors.length-1; num++){
+            floors[num].on("down_button_pressed", down_pressed(num));
+            floors[num].on("up_button_pressed", up_pressed(num));
+        }
+    },
+    update: function(dt, elevators, floors) {
+        for (var i = 0; i < elevators.length; i++){
+            var elevator = elevators[i];
+            if(elevator.currentFloor() == 0){
+                elevator.goingUpIndicator(true);
+                elevator.goingDownIndicator(false);
+            } else if(elevator.currentFloor() == floors.length-1){
+                elevator.goingUpIndicator(false);
+                elevator.goingDownIndicator(true);  
+            } else if(elevator.destinationDirection() == "down"){
+                elevator.goingUpIndicator(false);
+                elevator.goingDownIndicator(true);  
+            } else if(elevator.destinationDirection() == "up"){
+                elevator.goingUpIndicator(true);
+                elevator.goingDownIndicator(false);
+            }
+        }
+        
+        
+        /*else if(elevator.destinationDirection() == "stopped"){
+            elevator.goingUpIndicator(true);
+            elevator.goingDownIndicator(true);                    
+        }*/
+    }
+}
